@@ -46,4 +46,27 @@ module "eks" {
   app_subnet_cidrs = local.private_subnet_cidrs
   public_subnet_cidrs = local.public_subnet_cidrs
   single_nat_gateway = local.single_nat_gateway
+
+eks_managed_node_groups = {
+    my_node_group = {
+      desired_capacity = local.node_desired_capacity
+      max_capacity     = local.node_max_capacity
+      min_capacity     = local.node_min_capacity
+      instance_types   = [local.instance_type]
+      disk_size       = local.disk_size
+      disk_type       = local.disk_type
+      capacity_type    = local.capacity_type
+    }
+  } 
+  launch_template = {
+    name_prefix   = "${local.project_name}-node"
+    image_id      = data.aws_ami.eks_worker_ami.id
+    instance_type  = local.instance_type
+    disk_size      = local.disk_size
+    disk_type      = local.disk_type
+  }
+  max_size = local.node_max_capacity
+  min_size = local.node_min_capacity
+  version = local.cluster_version
+  create_cluster = local.enable_cluster_creation
 }
