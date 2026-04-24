@@ -47,15 +47,15 @@ module "eks" {
   source  = "terraform-aws-modules/eks/aws"
   version = "21.18.0"
 
-  create                 = local.enable_cluster_creation
-  name                   = local.cluster_name
-  kubernetes_version     = local.cluster_version
-  endpoint_public_access = local.enable_public_access
+  create                                   = local.enable_cluster_creation
+  name                                     = local.cluster_name
+  kubernetes_version                       = local.cluster_version
+  endpoint_public_access                   = local.enable_public_access
   enable_cluster_creator_admin_permissions = true
-  create_cloudwatch_log_group = false
+  create_cloudwatch_log_group              = false
 
-  encryption_config      = null
-  create_kms_key         = false
+  encryption_config = null
+  create_kms_key    = false
 
   addons = {
     vpc-cni = {
