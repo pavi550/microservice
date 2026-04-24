@@ -1,72 +1,89 @@
-local {
-  project_name = "my-microservice-project"
-  ami_type = "al2_x86_64"
-  azs = slice(data.aws_availability_zones.available.names, 0, 3)
-  capacity_type = "SPOT"
-  cluster_name = "my-eks-cluster"
-  cluster_version = "1.27"
-  disk_size = 20
+locals {
+  project_name            = "my-microservice-project"
+  ami_type                = "AL2_x86_64"
+  azs                     = slice(data.aws_availability_zones.available.names, 0, 2)
+  capacity_type           = "SPOT"
+  cluster_name            = "my-eks-cluster"
+  cluster_version         = "1.31"
+  disk_size               = 20
   enable_cluster_creation = true
-  enable_nat_gateway = true
-  enable_public_access = true
-  instance_type = "t2.micro"  disk_type = "gp2"
-  node_desired_capacity = 3
-  node_max_capacity = 5
-  node_min_capacity = 1
-  infra_subnet_cidrs = ["10.0.1.0/24", "10.0.2.0/24"]
-  private_subnet_cidrs = ["10.0.3.0/24", "10.0.4.0/24"]
-  public_subnet_cidrs = ["10.0.5.0/24", "10.0.6.0/24"]
-  single_nat_gateway = true
-  vpc_cidr_block = "10.0.0.0/16"
-
+  enable_nat_gateway      = false
+  enable_public_access    = true
+  instance_type           = "t3.micro"
+  node_desired_capacity   = 1
+  node_max_capacity       = 2
+  node_min_capacity       = 1
+  private_subnet_cidrs    = ["10.0.1.0/24", "10.0.2.0/24"]
+  public_subnet_cidrs     = ["10.0.3.0/24", "10.0.4.0/24"]
+  single_nat_gateway      = false
+  vpc_cidr_block          = "10.0.0.0/16"
 }
+
 data "aws_availability_zones" "available" {
   state = "available"
 }
-module "vpc" {
-  source = "terraform-aws-modules/vpc/aws"
-  version = "3.14.0"
-  name = "${local.project_name}-vpc" #my-eks-cluster-vpc
-  cidr_block = local.vpc_cidr_block
-  enable_nat_gateway = local.enable_nat_gateway
-  enable_public_access = local.enable_public_access
-  azs = local.azs
-  infra_subnet_cidrs = local.infra_subnet_cidrs
-  app_subnet_cidrs = local.private_subnet_cidrs
-  public_subnet_cidrs = local.public_subnet_cidrs
-}
-module "eks" {
-  source = "terraform-aws-modules/eks/aws"
-  version = "3.14.0"
-    cluster_name = local.cluster_name   
-  region = "us-east-1"
-  azs = local.azs
-  cidr_block = local.vpc_cidr_block
-  infra_subnet_cidrs = local.infra_subnet_cidrs
-  app_subnet_cidrs = local.private_subnet_cidrs
-  public_subnet_cidrs = local.public_subnet_cidrs
-  single_nat_gateway = local.single_nat_gateway
 
-eks_managed_node_groups = {
-    my_node_group = {
-      desired_capacity = local.node_desired_capacity
-      max_capacity     = local.node_max_capacity
-      min_capacity     = local.node_min_capacity
-      instance_types   = [local.instance_type]
-      disk_size       = local.disk_size
-      disk_type       = local.disk_type
-      capacity_type    = local.capacity_type
+module "vpc" {
+  source  = "terraform-aws-modules/vpc/aws"
+  version = "~> 5.0"
+
+  name = "${local.project_name}-vpc"
+  cidr = local.vpc_cidr_block
+  azs  = local.azs
+
+  private_subnets = local.private_subnet_cidrs
+  public_subnets  = local.public_subnet_cidrs
+
+  enable_nat_gateway      = local.enable_nat_gateway
+  single_nat_gateway      = local.single_nat_gateway
+  map_public_ip_on_launch = true
+
+  enable_dns_hostnames = true
+
+  enable_flow_log = false
+}
+
+module "eks" {
+  source  = "terraform-aws-modules/eks/aws"
+  version = "21.18.0"
+
+  create                 = local.enable_cluster_creation
+  name                   = local.cluster_name
+  kubernetes_version     = local.cluster_version
+  endpoint_public_access = local.enable_public_access
+  enable_cluster_creator_admin_permissions = true
+  create_cloudwatch_log_group = false
+
+  encryption_config      = null
+  create_kms_key         = false
+
+  addons = {
+    vpc-cni = {
+      resolve_conflicts_on_create = "OVERWRITE"
+      resolve_conflicts_on_update = "OVERWRITE"
     }
-  } 
-  launch_template = {
-    name_prefix   = "${local.project_name}-node"
-    image_id      = data.aws_ami.eks_worker_ami.id
-    instance_type  = local.instance_type
-    disk_size      = local.disk_size
-    disk_type      = local.disk_type
+    kube-proxy = {
+      resolve_conflicts_on_create = "OVERWRITE"
+      resolve_conflicts_on_update = "OVERWRITE"
+    }
+    coredns = {
+      resolve_conflicts_on_create = "OVERWRITE"
+      resolve_conflicts_on_update = "OVERWRITE"
+    }
   }
-  max_size = local.node_max_capacity
-  min_size = local.node_min_capacity
-  version = local.cluster_version
-  create_cluster = local.enable_cluster_creation
+
+  vpc_id     = module.vpc.vpc_id
+  subnet_ids = module.vpc.public_subnets
+
+  eks_managed_node_groups = {
+    my_node_group = {
+      desired_size   = local.node_desired_capacity
+      max_size       = local.node_max_capacity
+      min_size       = local.node_min_capacity
+      instance_types = [local.instance_type]
+      capacity_type  = local.capacity_type
+      disk_size      = local.disk_size
+      ami_type       = local.ami_type
+    }
+  }
 }
