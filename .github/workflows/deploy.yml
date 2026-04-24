@@ -1,0 +1,59 @@
+name: Deploy microservice-eks project
+
+on: workflow_dispatch
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+    - name: configure AWS cli
+      uses: aws-actions/configure-aws-credentials@v6.1.0
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: 1.14.9
+    - name: Terraform Init
+      working-directory: terraform
+      run: terraform init
+    - name: Terraform Plan
+      working-directory: terraform
+      run: terraform plan -out=tfplan -input=false
+    - name: Terraform Apply
+      working-directory: terraform
+      run: terraform apply -input=false tfplan --auto-approve
+
+  microservice:
+    runs-on: ubuntu-latest
+    needs: terraform
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4.1.2
+    - name: configure AWS cli
+      uses: aws-actions/configure-aws-credentials@v6.1.0
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1
+
+    - name: Create EKS cluster
+      run: echo "Creating EKS cluster..."
+    - name: Deploy microservice to EKS cluster
+      run: echo "Deploying microservice to EKS cluster..."
+    - name: Connect to EKS cluster
+      run: |
+        echo "Connecting to EKS cluster..."
+        aws eks update-kubeconfig --name your-cluster-name --region us-east-1
+        kubectl get nodes
+        kubectl get pods -n your-namespace
+        kubectl get services -n your-namespace
+        echo "Connected to EKS cluster and verified microservice deployment."
+    - name: Deploy Example Microservice
+      run: kubectl apply -f https://github.com/pavi550/microservices-demo/blob/main/release/kubernetes-manifests.yaml
+
+    - name: Check Deployment status
+      run: kubectl get all -o wide -A
