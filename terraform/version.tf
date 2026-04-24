@@ -8,10 +8,10 @@ terraform {
     }
   }
   backend "s3" {
-    bucket  = "course-project-terraform-state"
+    bucket  = "course-project-terrafom-state"
     encrypt = true
     key     = "terraform/microservice/terraform.tfstate"
-    region  = "us-east-2"
+    region  = "us-east-1"
   }
 }
 
