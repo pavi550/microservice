@@ -29,7 +29,7 @@ jobs:
         terraform_version: 1.14.9
     - name: Terraform Init
       working-directory: terraform
-      run: terraform init -backend-config=version.tf
+      run: terraform init
     - name: Terraform Plan
       working-directory: terraform
       run: terraform plan -out=tfplan -input=false
