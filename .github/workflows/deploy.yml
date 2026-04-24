@@ -25,7 +25,7 @@ jobs:
       run: terraform plan -out=tfplan -input=false
     - name: Terraform Apply
       working-directory: terraform
-      run: terraform apply -input=false tfplan --auto-approve
+      run: terraform apply -input=false tfplan
 
   microservice:
     runs-on: ubuntu-latest
