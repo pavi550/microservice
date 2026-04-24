@@ -11,7 +11,7 @@ terraform {
     bucket  = "course-project-terraform-state"
     encrypt = true
     key     = "terraform/microservice/terraform.tfstate"
-    region  = "us-east-1"
+    region  = "us-east-2"
   }
 }
 
