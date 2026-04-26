@@ -4,6 +4,7 @@ on: workflow_dispatch
 env :
   EKS_DIR: terraform/eks
   MONITORING_DIR: terraform/monitoring
+  MONITORING_MANIFEST_PATH: k8s/monitoring/prometheus-grafana.yaml
   CLUSTER_NAME: my-eks-cluster-v2
   MICROSERVICE_MANIFEST_URL: https://raw.githubusercontent.com/pavi550/microservices-demo/main/release/kubernetes-manifests.yaml
   METRICS_SERVER_MANIFEST_URL: https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
@@ -110,7 +111,7 @@ jobs:
         sleep 40 #wait
         kubectl get all -o wide -A
 
-  terraform_monitoring:
+  monitoring_deploy:
     needs: terraform_deploy_microservice
     runs-on: ubuntu-latest
     steps:
@@ -134,47 +135,19 @@ jobs:
           aws sts get-caller-identity
           kubectl cluster-info
           kubectl auth can-i get pods -n monitoring
-          kubectl get ns monitoring || echo "Namespace monitoring will be created by Helm/Terraform."
+          kubectl get ns monitoring || echo "Namespace monitoring will be created by manifest."
 
-      - name: Clean up failed Helm monitoring release (if any)
+      - name: Deploy Prometheus and Grafana manifests
         run: |
-          set -euo pipefail
+          kubectl apply -f ${{ env.MONITORING_MANIFEST_PATH }}
 
-          for ns in monitoring default; do
-            if helm status monitoring -n "$ns" >/dev/null 2>&1; then
-              status=$(helm status monitoring -n "$ns" | awk '/^STATUS:/{print tolower($2)}')
-              echo "Found monitoring release in $ns with status: $status"
-              if [ "$status" = "failed" ] || [ "$status" = "pending-install" ] || [ "$status" = "pending-upgrade" ]; then
-                echo "Uninstalling stale monitoring release from $ns"
-                helm uninstall monitoring -n "$ns"
-              fi
-            fi
-          done
-      
-      - name : Install Trivy
+      - name: Wait for monitoring rollouts
         run: |
-          sudo apt-get update && sudo apt-get install -y wget apt-transport-https gnupg lsb-release
-          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
-          echo "deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/trivy.list
-          sudo apt-get update && sudo apt-get install -y trivy
-          trivy version
-      
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: ${{ env.TF_VERSION }}
-      - name: Terraform Init
-        working-directory: ${{ env.MONITORING_DIR }}
-        run: terraform init
-      - name: Terraform Plan
-        working-directory: ${{ env.MONITORING_DIR }}  
-        run: terraform plan -out=tfplan -input=false
-      - name: Terraform Apply
-        working-directory: ${{ env.MONITORING_DIR }}
-        run: terraform apply -input=false tfplan
+          kubectl rollout status deployment/prometheus -n monitoring --timeout=600s
+          kubectl rollout status deployment/grafana -n monitoring --timeout=600s
 
-      - name: Check vulnerabilities in monitoring deployment
+      - name: Check monitoring resources
         run: |
-          echo "Checking for vulnerabilities in monitoring deployment..."
-          trivy k8s --namespace monitoring --severity HIGH,CRITICAL
+          kubectl get pods -n monitoring -o wide
+          kubectl get svc -n monitoring
           
