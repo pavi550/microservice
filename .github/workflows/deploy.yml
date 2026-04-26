@@ -31,6 +31,26 @@ jobs:
     - name: Terraform Init
       working-directory: ${{ env.EKS_DIR }}
       run: terraform init
+    - name: Import existing EKS add-ons into Terraform state
+      working-directory: ${{ env.EKS_DIR }}
+      run: |
+        set -euo pipefail
+
+        for addon in vpc-cni kube-proxy coredns; do
+          state_addr="module.eks.aws_eks_addon.this[\"${addon}\"]"
+
+          if terraform state list | grep -qF "$state_addr"; then
+            echo "${addon} already in Terraform state."
+            continue
+          fi
+
+          if aws eks describe-addon --cluster-name "${{ env.CLUSTER_NAME }}" --addon-name "$addon" --region us-east-1 >/dev/null 2>&1; then
+            echo "Importing existing addon: $addon"
+            terraform import "$state_addr" "${{ env.CLUSTER_NAME }}:${addon}"
+          else
+            echo "Addon $addon does not exist yet. Terraform will create it."
+          fi
+        done
     - name: Terraform Plan
       working-directory: ${{ env.EKS_DIR }}
       run: terraform plan -out=tfplan -input=false
