@@ -3,7 +3,7 @@ locals {
   ami_type                = "AL2_x86_64"
   azs                     = slice(data.aws_availability_zones.available.names, 0, 2)
   capacity_type           = "SPOT"
-  cluster_name            = "my-eks-cluster"
+  cluster_name            = "my-eks-cluster-v2"
   cluster_version         = "1.31"
   disk_size               = 20
   enable_cluster_creation = true
