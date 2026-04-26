@@ -143,8 +143,21 @@ jobs:
 
       - name: Wait for monitoring rollouts
         run: |
+          set +e
           kubectl rollout status deployment/prometheus -n monitoring --timeout=600s
+          prometheus_status=$?
           kubectl rollout status deployment/grafana -n monitoring --timeout=600s
+          grafana_status=$?
+
+          if [ "$prometheus_status" -ne 0 ] || [ "$grafana_status" -ne 0 ]; then
+            echo "Monitoring rollout failed. Collecting diagnostics..."
+            kubectl get pods -n monitoring -o wide || true
+            kubectl describe deployment prometheus -n monitoring || true
+            kubectl describe deployment grafana -n monitoring || true
+            kubectl describe pods -n monitoring || true
+            kubectl get events -n monitoring --sort-by=.lastTimestamp | tail -n 100 || true
+            exit 1
+          fi
 
       - name: Check monitoring resources
         run: |
