@@ -128,6 +128,14 @@ jobs:
           aws eks update-kubeconfig --name ${{ env.CLUSTER_NAME }} --region us-east-1
           kubectl get nodes
 
+      - name: Preflight auth checks for monitoring deploy
+        run: |
+          set -euo pipefail
+          aws sts get-caller-identity
+          kubectl cluster-info
+          kubectl auth can-i get pods -n monitoring
+          kubectl get ns monitoring || echo "Namespace monitoring will be created by Helm/Terraform."
+
       - name: Clean up failed Helm monitoring release (if any)
         run: |
           set -euo pipefail
