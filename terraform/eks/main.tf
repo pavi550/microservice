@@ -11,7 +11,7 @@ locals {
   enable_public_access    = true
   instance_type           = "t3.medium"
   node_desired_capacity   = 1
-  node_max_capacity       = 2
+  node_max_capacity       = 1
   node_min_capacity       = 1
   private_subnet_cidrs    = ["10.0.1.0/24", "10.0.2.0/24"]
   public_subnet_cidrs     = ["10.0.3.0/24", "10.0.4.0/24"]
