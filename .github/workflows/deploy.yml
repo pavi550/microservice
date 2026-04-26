@@ -4,6 +4,8 @@ on: workflow_dispatch
 env :
   EKS_DIR: terraform/eks
   MONITORING_DIR: terraform/monitoring
+  CLUSTER_NAME: my-eks-cluster-v2
+  MICROSERVICE_MANIFEST_URL: https://raw.githubusercontent.com/pavi550/microservices-demo/main/release/kubernetes-manifests.yaml
   TF_VERSION: 1.14.9
 jobs:
   terraform:
@@ -24,11 +26,6 @@ jobs:
     - name: Terraform Init
       working-directory: ${{ env.EKS_DIR }}
       run: terraform init
-    - name: Import existing EKS cluster if not in state
-      working-directory: ${{ env.EKS_DIR }}
-      run: |
-        terraform state list | grep -q 'module.eks.aws_eks_cluster.this\[0\]' || \
-          terraform import module.eks.aws_eks_cluster.this[0] my-eks-cluster
     - name: Terraform Plan
       working-directory: ${{ env.EKS_DIR }}
       run: terraform plan -out=tfplan -input=false
@@ -49,22 +46,15 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: us-east-1
 
-    - name: Create EKS cluster
-      run: echo "Creating EKS cluster..."
-    - name: Deploy microservice to EKS cluster
-      run: echo "Deploying microservice to EKS cluster..."
-    - name: Connect to EKS cluster
+    - name: Configure kubectl for EKS
       run: |
-        echo "Connecting to EKS cluster..."
-        aws eks update-kubeconfig --name your-cluster-name --region us-east-1
+        aws eks update-kubeconfig --name ${{ env.CLUSTER_NAME }} --region us-east-1
         kubectl get nodes
-        kubectl get pods -n your-namespace
-        kubectl get services -n your-namespace
-        echo "Connected to EKS cluster and verified microservice deployment."
-    - name: Deploy Example Microservice
-      run: kubectl apply -f https://github.com/pavi550/microservices-demo/blob/main/release/kubernetes-manifests.yaml
+        kubectl get namespaces
+    - name: Deploy example microservice manifests
+      run: kubectl apply -f ${{ env.MICROSERVICE_MANIFEST_URL }}
 
-    - name: Check Deployment status
+    - name: Check deployment status
       run: |
         sleep 40 #wait
         kubectl get all -o wide -A

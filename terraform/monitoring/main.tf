@@ -1,5 +1,5 @@
 locals {
-  cluster_name     = "my-eks-cluster"
+  cluster_name     = "my-eks-cluster-v2"
   namespace        = "default"
   chart_name       = "kube-prometheus-stack"
   chart_repository = "https://prometheus-community.github.io/helm-charts"

@@ -4,6 +4,8 @@ on: workflow_dispatch
 env :
   EKS_DIR: terraform/eks
   MONITORING_DIR: terraform/monitoring
+  CLUSTER_NAME: my-eks-cluster-v2
+  MICROSERVICE_MANIFEST_URL: https://raw.githubusercontent.com/pavi550/microservices-demo/main/release/kubernetes-manifests.yaml
   TF_VERSION: 1.14.9
 
 jobs:
@@ -19,94 +21,59 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: us-east-1
 
-    - name: Delete EKS cluster
-      run: echo "Deleting EKS cluster..."
-    - name: Delete microservice from EKS cluster
-      run: echo "Deleting microservice from EKS cluster..."
-    - name: Connect to EKS cluster
+    - name: Configure kubectl for EKS
       run: |
-        echo "Connecting to EKS cluster..."
-        aws eks update-kubeconfig --name your-cluster-name --region us-east-1
+        aws eks update-kubeconfig --name ${{ env.CLUSTER_NAME }} --region us-east-1
         kubectl get nodes
-        kubectl get pods -n your-namespace
-        kubectl get services -n your-namespace
-        echo "Connected to EKS cluster and verified microservice deployment."
-    - name: Delete Example Microservice
-      run: kubectl delete -f https://github.com/pavi550/microservices-demo/blob/main/release/kubernetes-manifests.yaml
+        kubectl get namespaces
+    - name: Delete example microservice manifests
+      run: kubectl delete -f ${{ env.MICROSERVICE_MANIFEST_URL }} --ignore-not-found=true
 
     - name: Check Deployment status
       run: kubectl get all -o wide -A
-      
-    terraform_monitoring :
-    needs : microservice
+
+  terraform_monitoring:
+    needs: microservice
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4.1.2
-      - name: configure AWS cli
-        uses: aws-actions/configure-aws-credentials@v6.1.0
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
-      
-      - name : Install Trivy
-        run: |
-          sudo apt-get update && sudo apt-get install -y wget apt-transport-https gnupg lsb-release
-          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
-          echo "deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/trivy.list
-          sudo apt-get update && sudo apt-get install -y trivy
-          trivy version
-      
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: ${{ env.TF_VERSION }}
-      - name: Terraform Init
-        working-directory: ${{ env.MONITORING_DIR }}
-        run: terraform init
-      - name: Terraform Plan
-        working-directory: ${{ env.MONITORING_DIR }}  
-        run: terraform plan -out=tfplan -input=false
-      - name: Terraform destroy
-        working-directory: ${{ env.MONITORING_DIR }}
-        run: terraform destroy -auto-approve
-
-    terraform_destroy_microservice:
-     needs : microservice
-     runs-on: ubuntu-latest
-     steps:
-     - name: Checkout code
-       uses: actions/checkout@v2
-     - name: configure AWS cli
-       uses: aws-actions/configure-aws-credentials@v6.1.0
-       with:
-         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
-         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-         aws-region: us-east-1
-     - name: Setup Terraform
-       uses: hashicorp/setup-terraform@v3
-       with:
-         terraform_version: ${{ env.TF_VERSION }}
-     - name: Terraform Init
-       working-directory: ${{ env.EKS_DIR }}
-       run: terraform init
-     - name: Terraform destroy
-       working-directory: ${{ env.EKS_DIR }}
-       run: terraform destroy -auto-approve
-      - name: configure AWS cli
-        uses: aws-actions/configure-aws-credentials@v6.1.0
-        with:
+    - name: Checkout code
+      uses: actions/checkout@v4.1.2
+    - name: configure AWS cli
+      uses: aws-actions/configure-aws-credentials@v6.1.0
+      with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: us-east-1
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: ${{ env.TF_VERSION }}
-      - name: Terraform Init
-        working-directory: ${{ env.MONITORING_DIR }}
-        run: terraform init
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: ${{ env.TF_VERSION }}
+    - name: Terraform Init
+      working-directory: ${{ env.MONITORING_DIR }}
+      run: terraform init
     - name: Terraform destroy
       working-directory: ${{ env.MONITORING_DIR }}
+      run: terraform destroy -auto-approve
+
+  terraform_destroy_microservice:
+    needs: terraform_monitoring
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+    - name: configure AWS cli
+      uses: aws-actions/configure-aws-credentials@v6.1.0
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: ${{ env.TF_VERSION }}
+    - name: Terraform Init
+      working-directory: ${{ env.EKS_DIR }}
+      run: terraform init
+    - name: Terraform destroy
+      working-directory: ${{ env.EKS_DIR }}
       run: terraform destroy -auto-approve
