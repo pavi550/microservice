@@ -9,7 +9,7 @@ locals {
   enable_cluster_creation = true
   enable_nat_gateway      = false
   enable_public_access    = true
-  instance_type           = "t3.micro"
+  instance_type           = "t3.medium"
   node_desired_capacity   = 1
   node_max_capacity       = 2
   node_min_capacity       = 1
