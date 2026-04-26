@@ -26,6 +26,7 @@ provider "aws" {
     tags = {
       Owner = "kumaprap"
     }
+  }
 }
 
 provider "helm" {
@@ -37,13 +38,13 @@ provider "helm" {
 }
 
 variable "region" {
-    description = "AWS region to deploy resources"
-    default     = "us-east-1"
+  description = "AWS region to deploy resources"
+  default     = "us-east-1"
 }
 
 data "aws_eks_cluster" "eks_cluster" {
   name = local.cluster_name
-}   
+}
 
 data "aws_eks_cluster_auth" "eks_cluster" {
   name = local.cluster_name
