@@ -36,6 +36,7 @@ jobs:
 
     - name: Check Deployment status
       run: kubectl get all -o wide -A
+      
     terraform_monitoring :
     needs : microservice
     runs-on: ubuntu-latest
@@ -88,24 +89,24 @@ jobs:
        with:
          terraform_version: ${{ env.TF_VERSION }}
      - name: Terraform Init
-       working-directory: terraform
+       working-directory: ${{ env.EKS_DIR }}
        run: terraform init
      - name: Terraform destroy
        working-directory: ${{ env.EKS_DIR }}
        run: terraform destroy -auto-approve
-    - name: configure AWS cli
-      uses: aws-actions/configure-aws-credentials@v6.1.0
-      with:
+      - name: configure AWS cli
+        uses: aws-actions/configure-aws-credentials@v6.1.0
+        with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: us-east-1
-    - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v3
-      with:
-        terraform_version: ${{ env.TF_VERSION }}
-    - name: Terraform Init
-      working-directory: terraform
-      run: terraform init
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+      - name: Terraform Init
+        working-directory: ${{ env.MONITORING_DIR }}
+        run: terraform init
     - name: Terraform destroy
       working-directory: ${{ env.MONITORING_DIR }}
       run: terraform destroy -auto-approve
