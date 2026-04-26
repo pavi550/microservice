@@ -34,6 +34,69 @@ resource "helm_release" "monitoring" {
     value = "false"
   }
 
+  # Disable optional components to reduce pod count and baseline resource usage.
+  set {
+    name  = "alertmanager.enabled"
+    value = "false"
+  }
+
+  set {
+    name  = "kubeStateMetrics.enabled"
+    value = "false"
+  }
+
+  set {
+    name  = "prometheus-node-exporter.enabled"
+    value = "false"
+  }
+
+  set {
+    name  = "defaultRules.create"
+    value = "false"
+  }
+
+  # Ultra-lean profile: disable control-plane/service monitors that are non-essential
+  # for app-level observability on a small EKS cluster.
+  set {
+    name  = "kubeApiServer.enabled"
+    value = "false"
+  }
+
+  set {
+    name  = "kubeControllerManager.enabled"
+    value = "false"
+  }
+
+  set {
+    name  = "kubeScheduler.enabled"
+    value = "false"
+  }
+
+  set {
+    name  = "kubeEtcd.enabled"
+    value = "false"
+  }
+
+  set {
+    name  = "kubeProxy.enabled"
+    value = "false"
+  }
+
+  set {
+    name  = "coreDns.enabled"
+    value = "false"
+  }
+
+  set {
+    name  = "prometheusOperator.resources.requests.cpu"
+    value = "50m"
+  }
+
+  set {
+    name  = "prometheusOperator.resources.requests.memory"
+    value = "128Mi"
+  }
+
   # Reduce default requests so the chart schedules on smaller EKS node groups.
   set {
     name  = "grafana.resources.requests.cpu"
@@ -46,23 +109,39 @@ resource "helm_release" "monitoring" {
   }
 
   set {
+    name  = "grafana.sidecar.dashboards.enabled"
+    value = "false"
+  }
+
+  set {
+    name  = "grafana.sidecar.datasources.enabled"
+    value = "false"
+  }
+
+  set {
     name  = "prometheus.prometheusSpec.resources.requests.cpu"
-    value = "100m"
-  }
-
-  set {
-    name  = "prometheus.prometheusSpec.resources.requests.memory"
-    value = "512Mi"
-  }
-
-  set {
-    name  = "alertmanager.alertmanagerSpec.resources.requests.cpu"
     value = "50m"
   }
 
   set {
-    name  = "alertmanager.alertmanagerSpec.resources.requests.memory"
-    value = "128Mi"
+    name  = "prometheus.prometheusSpec.resources.requests.memory"
+    value = "256Mi"
   }
+
+  set {
+    name  = "prometheus.prometheusSpec.retention"
+    value = "6h"
+  }
+
+  set {
+    name  = "prometheus.prometheusSpec.scrapeInterval"
+    value = "60s"
+  }
+
+  set {
+    name  = "prometheus.prometheusSpec.evaluationInterval"
+    value = "60s"
+  }
+
 }
 
