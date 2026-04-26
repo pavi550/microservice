@@ -16,9 +16,21 @@ resource "helm_release" "monitoring" {
   create_namespace = true
   timeout    = 900
   atomic     = true
+  cleanup_on_fail = true
 
   set {
     name  = "prometheus.prometheusSpec.serviceMonitorSelectorNilUsesHelmValues"
+    value = "false"
+  }
+
+  # Avoid pre-install hook job timeouts from admission webhook cert patch jobs.
+  set {
+    name  = "prometheusOperator.admissionWebhooks.enabled"
+    value = "false"
+  }
+
+  set {
+    name  = "prometheusOperator.admissionWebhooks.patch.enabled"
     value = "false"
   }
 
