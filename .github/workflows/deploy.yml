@@ -98,7 +98,7 @@ jobs:
             --cpu-percent=${{ env.HPA_CPU_PERCENT }} \
             --min=${{ env.HPA_MIN_REPLICAS }} \
             --max=${{ env.HPA_MAX_REPLICAS }} \
-            --dry-run=client -o yaml | kubectl apply -f -
+            --dry-run=client -o yaml | kubectl apply -f - || true
         done
 
         kubectl get hpa -n ${{ env.HPA_NAMESPACE }}
