@@ -36,10 +36,12 @@ jobs:
       run: |
         set -euo pipefail
 
+        state_list=$(terraform state list 2>/dev/null || true)
+
         for addon in vpc-cni kube-proxy coredns; do
           state_addr="module.eks.aws_eks_addon.this[\"${addon}\"]"
 
-          if terraform state list | grep -qF "$state_addr"; then
+          if echo "$state_list" | grep -qF "$state_addr"; then
             echo "${addon} already in Terraform state."
             continue
           fi
