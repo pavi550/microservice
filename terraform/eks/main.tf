@@ -77,13 +77,14 @@ module "eks" {
 
   eks_managed_node_groups = {
     my_node_group = {
-      desired_size   = local.node_desired_capacity
-      max_size       = local.node_max_capacity
-      min_size       = local.node_min_capacity
-      instance_types = [local.instance_type]
-      capacity_type  = local.capacity_type
-      disk_size      = local.disk_size
-      ami_type       = local.ami_type
+      desired_size       = local.node_desired_capacity
+      max_size           = local.node_max_capacity
+      min_size           = local.node_min_capacity
+      instance_types     = [local.instance_type]
+      capacity_type      = local.capacity_type
+      disk_size          = local.disk_size
+      ami_type           = local.ami_type
+      kubernetes_version = local.cluster_version
     }
   }
 }
