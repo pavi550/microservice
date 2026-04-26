@@ -122,6 +122,26 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
+
+      - name: Configure kubectl for monitoring checks
+        run: |
+          aws eks update-kubeconfig --name ${{ env.CLUSTER_NAME }} --region us-east-1
+          kubectl get nodes
+
+      - name: Clean up failed Helm monitoring release (if any)
+        run: |
+          set -euo pipefail
+
+          for ns in monitoring default; do
+            if helm status monitoring -n "$ns" >/dev/null 2>&1; then
+              status=$(helm status monitoring -n "$ns" | awk '/^STATUS:/{print tolower($2)}')
+              echo "Found monitoring release in $ns with status: $status"
+              if [ "$status" = "failed" ] || [ "$status" = "pending-install" ] || [ "$status" = "pending-upgrade" ]; then
+                echo "Uninstalling stale monitoring release from $ns"
+                helm uninstall monitoring -n "$ns"
+              fi
+            fi
+          done
       
       - name : Install Trivy
         run: |
