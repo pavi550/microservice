@@ -4,6 +4,7 @@ on: workflow_dispatch
 env :
   EKS_DIR: terraform/eks
   MONITORING_DIR: terraform/monitoring
+  MONITORING_MANIFEST_PATH: k8s/monitoring/prometheus-grafana.yaml
   CLUSTER_NAME: my-eks-cluster-v2
   MICROSERVICE_MANIFEST_URL: https://raw.githubusercontent.com/pavi550/microservices-demo/main/release/kubernetes-manifests.yaml
   HPA_NAMESPACE: default
@@ -36,7 +37,7 @@ jobs:
     - name: Check Deployment status
       run: kubectl get all -o wide -A
 
-  terraform_monitoring:
+  monitoring_cleanup:
     needs: microservice
     runs-on: ubuntu-latest
     steps:
@@ -48,19 +49,18 @@ jobs:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: us-east-1
-    - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v3
-      with:
-        terraform_version: ${{ env.TF_VERSION }}
-    - name: Terraform Init
-      working-directory: ${{ env.MONITORING_DIR }}
-      run: terraform init
-    - name: Terraform destroy
-      working-directory: ${{ env.MONITORING_DIR }}
-      run: terraform destroy -auto-approve
+    - name: Configure kubectl for EKS
+      run: |
+        aws eks update-kubeconfig --name ${{ env.CLUSTER_NAME }} --region us-east-1
+        kubectl get nodes
+
+    - name: Delete monitoring manifests
+      run: |
+        kubectl delete -f ${{ env.MONITORING_MANIFEST_PATH }} --ignore-not-found=true
+        kubectl delete ns monitoring --ignore-not-found=true
 
   terraform_destroy_microservice:
-    needs: terraform_monitoring
+    needs: monitoring_cleanup
     runs-on: ubuntu-latest
     steps:
     - name: Checkout code
