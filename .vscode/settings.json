@@ -1,0 +1,10 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "aws": true,
+        "kubectl -n kube-system": true,
+        "/^Set-Location \"C:/Users/pavi5/microservice/terraform/eks\"; cmd /c \"terraform import module\\.eks\\.aws_eks_addon\\.this\\[\\\\\"vpc-cni\\\\\"\\] my-eks-cluster-v2:vpc-cni\"; cmd /c \"terraform import module\\.eks\\.aws_eks_addon\\.this\\[\\\\\"kube-proxy\\\\\"\\] my-eks-cluster-v2:kube-proxy\"; cmd /c \"terraform import module\\.eks\\.aws_eks_addon\\.this\\[\\\\\"coredns\\\\\"\\] my-eks-cluster-v2:coredns\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}
