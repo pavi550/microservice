@@ -64,8 +64,8 @@ jobs:
         sleep 40 #wait
         kubectl get all -o wide -A
 
-terraform_monitoring :
-    needs : microservice
+  terraform_monitoring:
+    needs: terraform_deploy_microservice
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
