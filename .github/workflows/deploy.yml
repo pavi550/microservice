@@ -24,6 +24,9 @@ jobs:
     - name: Terraform Init
       working-directory: ${{ env.EKS_DIR }}
       run: terraform init
+    - name: Import existing EKS cluster if not in state
+      working-directory: ${{ env.EKS_DIR }}
+      run: terraform import module.eks.aws_eks_cluster.this[0] my-eks-cluster || true
     - name: Terraform Plan
       working-directory: ${{ env.EKS_DIR }}
       run: terraform plan -out=tfplan -input=false
