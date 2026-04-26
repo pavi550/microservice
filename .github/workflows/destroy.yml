@@ -7,7 +7,6 @@ env :
   MONITORING_MANIFEST_PATH: k8s/monitoring/prometheus-grafana.yaml
   CLUSTER_NAME: my-eks-cluster-v2
   MICROSERVICE_MANIFEST_URL: https://raw.githubusercontent.com/pavi550/microservices-demo/main/release/kubernetes-manifests.yaml
-  HPA_NAMESPACE: default
   TF_VERSION: 1.14.9
 
 jobs:
@@ -30,9 +29,6 @@ jobs:
         kubectl get namespaces
     - name: Delete example microservice manifests
       run: kubectl delete -f ${{ env.MICROSERVICE_MANIFEST_URL }} --ignore-not-found=true
-
-    - name: Delete autoscaling policies
-      run: kubectl delete hpa --all -n ${{ env.HPA_NAMESPACE }} --ignore-not-found=true
 
     - name: Check Deployment status
       run: kubectl get all -o wide -A
